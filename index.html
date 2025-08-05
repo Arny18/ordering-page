@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Online Ordering App</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background-color: #f4f4f9;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background-color: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+    button {
+      padding: 10px 20px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    select, input[type="number"] {
+      padding: 10px;
+      width: 100%;
+      margin: 10px 0;
+      border-radius: 5px;
+      border: 1px solid #ddd;
+    }
+    .order-summary {
+      display: none;
+      margin-top: 20px;
+    }
+    .order-details {
+      margin-bottom: 10px;
+    }
+    .pickup-time {
+      font-weight: bold;
+      color: #333;
+    }
+    .cancel-button {
+      background-color: #f44336;
+      margin-left: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h1>Welcome to Online Ordering!</h1>
+    <button id="orderButton">Go to Order Page</button>
+  </div>
+
+  <div class="container" id="orderPage" style="display: none;">
+    <h1>Order Your Item</h1>
+    <label for="itemSelect">Choose an item:</label>
+    <select id="itemSelect">
+      <option value="burger">Burger - $5</option>
+      <option value="pizza">Pizza - $10</option>
+      <option value="salad">Salad - $3</option>
+    </select>
+
+    <label for="quantity">Quantity:</label>
+    <input type="number" id="quantity" value="1" min="1">
+
+    <button id="calculatePriceButton">Calculate Price</button>
+
+    <p id="priceDisplay"></p>
+
+    <button id="finishOrderButton" style="display: none;">Finish Order</button>
+
+    <div class="order-summary" id="orderSummary">
+      <p class="order-details">Item: <span id="summaryItem"></span></p>
+      <p class="order-details">Quantity: <span id="summaryQuantity"></span></p>
+      <p class="order-details">Total Price: $<span id="summaryPrice"></span></p>
+      <p class="pickup-time" id="pickupTime"></p>
+      <button class="cancel-button" id="cancelButton">Cancel Order</button>
+    </div>
+  </div>
+
+  <script>
+    const orderButton = document.getElementById("orderButton");
+    const orderPage = document.getElementById("orderPage");
+    const calculatePriceButton = document.getElementById("calculatePriceButton");
+    const finishOrderButton = document.getElementById("finishOrderButton");
+    const itemSelect = document.getElementById("itemSelect");
+    const quantityInput = document.getElementById("quantity");
+    const priceDisplay = document.getElementById("priceDisplay");
+    const orderSummary = document.getElementById("orderSummary");
+    const summaryItem = document.getElementById("summaryItem");
+    const summaryQuantity = document.getElementById("summaryQuantity");
+    const summaryPrice = document.getElementById("summaryPrice");
+    const pickupTime = document.getElementById("pickupTime");
+    const cancelButton = document.getElementById("cancelButton");
+
+    // Go to order page
+    orderButton.addEventListener("click", () => {
+      orderPage.style.display = "block";
+      document.querySelector(".container").style.display = "none";
+    });
+
+    // Calculate price
+    calculatePriceButton.addEventListener("click", () => {
+      const item = itemSelect.value;
+      const quantity = parseInt(quantityInput.value);
+      let price = 0;
+
+      if (item === "burger") price = 5;
+      else if (item === "pizza") price = 10;
+      else if (item === "salad") price = 3;
+
+      const totalPrice = price * quantity;
+      priceDisplay.innerHTML = `Total Price: $${totalPrice}`;
+      finishOrderButton.style.display = "block";
+    });
+
+    // Finish order and show pickup time
+    finishOrderButton.addEventListener("click", () => {
+      const item = itemSelect.options[itemSelect.selectedIndex].text;
+      const quantity = quantityInput.value;
+      const totalPrice = parseInt(priceDisplay.innerHTML.replace("Total Price: $", ""));
+      
+      summaryItem.innerHTML = item;
+      summaryQuantity.innerHTML = quantity;
+      summaryPrice.innerHTML = totalPrice;
+      
+      const pickupTimeEstimate = calculatePickupTime(totalPrice);
+      pickupTime.innerHTML = `Your order will be ready in approximately ${pickupTimeEstimate} minutes.`;
+
+      orderSummary.style.display = "block";
+    });
+
+    // Calculate pickup time based on price
+    function calculatePickupTime(totalPrice) {
+      if (totalPrice < 10) return 15;
+      else if (totalPrice < 20) return 20;
+      else return 25;
+    }
+
+    // Cancel order
+    cancelButton.addEventListener("click", () => {
+      orderPage.style.display = "none";
+      document.querySelector(".container").style.display = "block";
+    });
+  </script>
+
+</body>
+</html>
