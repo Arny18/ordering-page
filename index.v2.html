@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Online Ordering App</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background-color: #f4f4f9;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background-color: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+    button {
+      padding: 10px 20px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+      margin-top: 10px;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    select, input[type="number"] {
+      padding: 10px;
+      width: 100%;
+      margin: 10px 0;
+      border-radius: 5px;
+      border: 1px solid #ddd;
+    }
+    .order-summary, #cartPage {
+      display: none;
+      margin-top: 20px;
+    }
+    .order-details {
+      margin-bottom: 10px;
+    }
+    .pickup-time {
+      font-weight: bold;
+      color: #333;
+    }
+    .cancel-button {
+      background-color: #f44336;
+      margin-left: 10px;
+    }
+    .view-button {
+      background-color: #2196F3;
+      margin-left: 10px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+    }
+    th, td {
+      padding: 10px;
+      border: 1px solid #ddd;
+      text-align: left;
+    }
+    th {
+      background-color: #f2f2f2;
+    }
+    .remove-button {
+      background-color: #f44336;
+      border: none;
+      color: white;
+      padding: 5px 10px;
+      cursor: pointer;
+      border-radius: 3px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container" id="welcomePage">
+    <h1>Welcome to Online Ordering!</h1>
+    <button id="orderButton">Go to Order Page</button>
+  </div>
+
+  <div class="container" id="orderPage" style="display: none;">
+    <h1>Order Your Item</h1>
+
+    <label for="categorySelect">Choose a category:</label>
+    <select id="categorySelect">
+      <option value="">-- Select Category --</option>
+      <option value="Pizza">Pizza</option>
+      <option value="Burgers">Burgers</option>
+      <option value="Sandwiches">Sandwiches/Wraps</option>
+      <option value="Fries">Fries</option>
+      <option value="Drinks">Drinks</option>
+    </select>
+
+    <label for="itemSelect">Choose an item:</label>
+    <select id="itemSelect">
+      <option value="">-- Select an item --</option>
+    </select>
+
+    <label for="quantity">Quantity:</label>
+    <input type="number" id="quantity" value="1" min="1"/>
+
+    <button id="calculatePriceButton">Calculate Price</button>
+    <p id="priceDisplay"></p>
+    <button id="addToCartButton" style="display:none;">Add to Cart</button>
+
+    <button id="cartButton" style="margin-top:20px;">View Cart (0)</button>
+  </div>
+
+  <div class="container" id="cartPage">
+    <h1>Your Cart</h1>
+    <table id="cartTable">
+      <thead>
+        <tr>
+          <th>Item</th>
+          <th>Quantity</th>
+          <th>Price</th>
+          <th>Remove</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Cart items go here -->
+      </tbody>
+    </table>
+    <p><strong>Total: $<span id="cartTotal">0.00</span></strong></p>
+
+    <button id="viewOrderButton">View Order</button>
+    <button id="finishOrderButton">Finish Order</button>
+    <button id="backToOrderButton" style="background-color: #888;">Back to Order</button>
+
+    <p class="pickup-time" id="pickupTime"></p>
+  </div>
+
+  <script>
+    const orderButton = document.getElementById("orderButton");
+    const orderPage = document.getElementById("orderPage");
+    const welcomePage = document.getElementById("welcomePage");
+    const categorySelect = document.getElementById("categorySelect");
+    const itemSelect = document.getElementById("itemSelect");
+    const quantityInput = document.getElementById("quantity");
+    const calculatePriceButton = document.getElementById("calculatePriceButton");
+    const addToCartButton = document.getElementById("addToCartButton");
+    const priceDisplay = document.getElementById("priceDisplay");
+    const cartButton = document.getElementById("cartButton");
+    const cartPage = document.getElementById("cartPage");
+    const cartTableBody = document.querySelector("#cartTable tbody");
+    const cartTotalDisplay = document.getElementById("cartTotal");
+    const viewOrderButton = document.getElementById("viewOrderButton");
+    const finishOrderButton = document.getElementById("finishOrderButton");
+    const backToOrderButton = document.getElementById("backToOrderButton");
+    const pickupTime = document.getElementById("pickupTime");
+
+    let cart = [];
+    let orderStartTime = null;
+    let pickupTimeEstimate = 0;
+
+    const menuItems = {
+      "Pizza": {
+        "Margherita Pizza": 14.49,
+        "Supreme Pizza": 17.25,
+        "Peperoni Pizza": 15.75,
+        "BBQ Chicken Pizza": 16.99
+      },
+      "Burgers": {
+        "Bacon Cheese Burger": 6.00,
+        "Chicken Burger": 10.00,
+        "Beef Burger": 16.49,
+        "Double Beef Burger": 17.75
+      },
+      "Sandwiches": {
+        "Veggie Wrap": 15.50,
+        "Chicken Wrap": 20.00,
+        "Ham Cheese Toast": 4.20,
+        "Ham Salad Sandwich": 13.50,
+        "Veggie Sandwich": 6.65
+      },
+      "Fries": {
+        "Fries": 5.50
+      },
+      "Drinks": {
+        "Drinks": 2.50
+      }
+    };
+
+    // Load items based on category
+    categorySelect.addEventListener("change", () => {
+      const category = categorySelect.value;
+      itemSelect.innerHTML = '<option value="">-- Select an item --</option>';
+      priceDisplay.textContent = "";
+      addToCartButton.style.display = "none";
+
+      if (category && menuItems[category]) {
+        for (const item in menuItems[category]) {
+          const price = menuItems[category][item];
+          const option = document.createElement("option");
+          option.value = item;
+          option.textContent = `${item} - $${price.toFixed(2)}`;
+          itemSelect.appendChild(option);
+        }
+      }
+    });
+
+    // Go to order page
+    orderButton.addEventListener("click", () => {
+      orderPage.style.display = "block";
+      welcomePage.style.display = "none";
+    });
+
+    // Calculate price
+    calculatePriceButton.addEventListener("click", () => {
+      const category = categorySelect.value;
+      const item = itemSelect.value;
+      const quantity = parseInt(quantityInput.value);
+
+      if (!item || !menuItems[category] || !menuItems[category][item]) {
+        priceDisplay.textContent = "Please select a valid item.";
+        addToCartButton.style.display = "none";
+        return;
+      }
+
+      if (quantity < 1) {
+        priceDisplay.textContent = "Quantity must be at least 1.";
+        addToCartButton.style.display = "none";
+        return;
+      }
+
+      const unitPrice = menuItems[category][item];
+      const totalPrice = (unitPrice * quantity).toFixed(2);
+
+      priceDisplay.textContent = `Total Price: $${totalPrice}`;
+      addToCartButton.style.display = "inline-block";
+    });
+
+    // Add item to cart
+    addToCartButton.addEventListener("click", () => {
+      const category = categorySelect.value;
+      const item = itemSelect.value;
+      const quantity = parseInt(quantityInput.value);
+
+      if (!item || quantity < 1) return;
+
+      const unitPrice = menuItems[category][item];
+      const totalPrice = unitPrice * quantity;
+
+      // Check if item already in cart, update quantity if so
+      const existingIndex = cart.findIndex(ci => ci.category === category && ci.item === item);
+      if (existingIndex > -1) {
+        cart[existingIndex].quantity += quantity;
+        cart[existingIndex].totalPrice += totalPrice;
+      } else {
+        cart.push({
+          category,
+          item,
+          quantity,
+          unitPrice,
+          totalPrice
+        });
+      }
+
+      updateCartCount();
+      priceDisplay.textContent = "";
+      addToCartButton.style.display = "none";
+
+      // Reset selection
+      categorySelect.value = "";
+      itemSelect.innerHTML = '<option value="">-- Select an item --</option>';
+      quantityInput.value = 1;
+    });
+
+    // Update cart button count
+    function updateCartCount() {
+      let totalItems = cart.reduce((sum, c) => sum + c.quantity, 0);
+      cartButton.textContent = `View Cart (${totalItems})`;
+    }
+
+    // Show cart page
+    cartButton.addEventListener("click", () => {
+      if (cart.length === 0) {
+        alert("Your cart is empty.");
+        return;
+      }
+      renderCart();
+      cartPage.style.display = "block";
+      orderPage.style.display = "none";
+      pickupTime.textContent = "";
+    });
+
+    // Render cart items in table
+    function renderCart() {
+      cartTableBody.innerHTML = "";
+      let total = 0;
+      cart.forEach((cartItem, index) => {
+        total += cartItem.totalPrice;
+        const row = document.createElement("tr");
+
+        row.innerHTML = `
+          <td>${cartItem.item}</td>
+          <td>${cartItem.quantity}</td>
+          <td>$${cartItem.totalPrice.toFixed(2)}</td>
+          <td><button class="remove-button" data-index="${index}">Remove</button></td>
+        `;
+        cartTableBody.appendChild(row);
+      });
+      cartTotalDisplay.textContent = total.toFixed(2);
+
+      // Add event listeners to remove buttons
+      document.querySelectorAll(".remove-button").forEach(button => {
+        button.addEventListener("click", (e) => {
+          const index = parseInt(e.target.getAttribute("data-index"));
+          cart.splice(index, 1);
+          updateCartCount();
+          renderCart();
+          if (cart.length === 0) {
+            // If cart empty, return to order page
+            cartPage.style.display = "none";
+            orderPage.style.display = "block";
+          }
+        });
+      });
+    }
+
+    // View order details alert
+    viewOrderButton.addEventListener("click", () => {
+      if (cart.length === 0) {
+        alert("Your cart is empty.");
+        return;
+      }
+
+      let now = new Date();
+      let minutesLeft = 0;
+      if (orderStartTime) {
+        const minutesPassed = Math.floor((now - orderStartTime) / 60000);
+        minutesLeft = Math.max(pickupTimeEstimate - minutesPassed, 0);
+      }
+
+      let orderDetails = "Order Details:\n";
+      cart.forEach(ci => {
+        orderDetails += `${ci.item} x${ci.quantity} - $${ci.totalPrice.toFixed(2)}\n`;
+      });
+      orderDetails += `Total: $${cart.reduce((sum, ci) => sum + ci.totalPrice, 0).toFixed(2)}\n`;
+      if (orderStartTime) {
+        orderDetails += `Time left for pickup: ~${minutesLeft} minutes`;
+      } else {
+        orderDetails += "(Order not finished yet)";
+      }
+      alert(orderDetails);
+    });
+
+    // Finish order button - shows pickup time and locks the cart
+    finishOrderButton.addEventListener("click", () => {
+      if (cart.length === 0) {
+        alert("Your cart is empty.");
+        return;
+      }
+      const totalPrice = cart.reduce((sum, ci) => sum + ci.totalPrice, 0);
+      pickupTimeEstimate = calculatePickupTime(totalPrice);
+      pickupTime.textContent = `Your order will be ready in approximately ${pickupTimeEstimate} minutes.`;
+
+      orderStartTime = new Date();
+
+      // Lock the cart (disable remove buttons and buttons except view order)
+      document.querySelectorAll(".remove-button").forEach(btn => btn.disabled = true);
+      finishOrderButton.disabled = true;
+      addToCartButton.disabled = true;
+      calculatePriceButton.disabled = true;
+      categorySelect.disabled = true;
+      itemSelect.disabled = true;
+      quantityInput.disabled = true;
+      cartButton.disabled = true;
+    });
+
+    // Back to order page from cart
+    backToOrderButton.addEventListener("click", () => {
+      cartPage.style.display = "none";
+      orderPage.style.display = "block";
+
+      // Re-enable inputs if order not finished
+      if (!orderStartTime) {
+        calculatePriceButton.disabled = false;
+        addToCartButton.disabled = false;
+        categorySelect.disabled = false;
+        itemSelect.disabled = false;
+        quantityInput.disabled = false;
+        cartButton.disabled = false;
+      }
+    });
+
+    // Calculate pickup time based on total price
+    function calculatePickupTime(totalPrice) {
+      if (totalPrice < 10) return 15;
+      else if (totalPrice < 20) return 20;
+      else return 25;
+    }
+
+    // Initialize
+    updateCartCount();
+
+  </script>
+
+</body>
+</html>
